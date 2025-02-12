@@ -9,7 +9,7 @@ from src.io import mkdir_p
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Script for analyzing YouTube comments",
+        description="Script for classification YouTube comments",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
