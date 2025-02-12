@@ -162,3 +162,4 @@ tags
 
 # Default paths to (generated) files or directories
 /yt_comments.json
+/output
