@@ -1,12 +1,12 @@
 import argparse
 import os
-import random
 
 from src.const import STANCE_MAJOR_CATEGORY
 from src.const import STANCE_MINOR_CATEGORY
 from src.io import load_json
 from src.io import save_json
 from src.io import mkdir_p
+from src.wordcloud import generate_wordcloud
 
 
 def parse_args():
@@ -54,7 +54,7 @@ def cluster_by_stance(comments) -> dict:
     return stance_cluster
 
 
-def analyze_stance_cls(stance_cluster):
+def analyze_stance(stance_cluster, output_dir):
     stance_result = {}
     for major_category, minor_dict in stance_cluster.items():
         stance_result[major_category] = {
@@ -68,7 +68,28 @@ def analyze_stance_cls(stance_cluster):
             }
             stance_result[major_category]["count"] += len(comments)
 
+    save_json(os.path.join(output_dir, "stance_count.json"), stance_result)
+
     return stance_result
+
+
+def generate_stance_wordclouds(stance_result, output_dir):
+    overall_text = ""
+    for major_category, major_dict in stance_result.items():
+        major_text = ""
+        for minor_dict in major_dict["minor"].values():
+            major_text += "".join(minor_dict["comments"])
+
+        generate_wordcloud(
+            major_text,
+            os.path.join(output_dir, f"stance_wordcloud_{major_category}.png"),
+        )
+
+        overall_text += major_text
+
+    generate_wordcloud(
+        overall_text, os.path.join(output_dir, "stance_wordcloud_overall.png")
+    )
 
 
 def main(args):
@@ -80,9 +101,8 @@ def main(args):
     comments = load_json(input_path)
 
     stance_cluster = cluster_by_stance(comments)
-    stance_result = analyze_stance_cls(stance_cluster)
-
-    save_json(os.path.join(output_dir, "stance_count.json"), stance_result)
+    stance_result = analyze_stance(stance_cluster, output_dir)
+    generate_stance_wordclouds(stance_result, output_dir)
 
     print(f"Results saved in {output_dir}")
 
