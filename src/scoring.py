@@ -30,25 +30,25 @@ You are an expert in text analysis. Your task is to analyze user comments (from 
 {format_instructions}\
 """
 
-_SENTIMENT_SYSTEM_PROMPT = """\
-You are an expert in sentiment analysis. Your task is to analyze user comments (from YouTube videos) and assign a sentiment score from 1 to 10.
+_INFO_DEPTH_SYSTEM_PROMPT = """\
+You are an expert in text analysis. Your task is to evaluate user comments (from YouTube videos) about Unconditional Basic Income (UBI) and assign an information depth score from 1 to 10.
 
 ## Scoring Guide
-- **10 (Extremely Positive):** Highly enthusiastic, excited, overwhelmingly positive.
-- **9 (Very Positive):** Strongly positive, with slight reservations.
-- **8 (Highly Positive):** Positive but with a bit of rational analysis.
-- **7 (Somewhat Positive):** Leans positive but includes minor criticisms.
-- **6 (Slightly Positive):** Generally positive but not highly enthusiastic.
-- **5 (Neutral):** No strong emotions, just factual or balanced discussion.
-- **4 (Slightly Negative):** Some dissatisfaction but not strongly critical.
-- **3 (Moderately Negative):** Leans negative but acknowledges some positives.
-- **2 (Highly Negative):** Strong dissatisfaction and criticism.
-- **1 (Extremely Negative):** Extremely negative, expressing frustration or anger.
+- **10 (Highly Detailed & Analytical)**: The comment contains multiple arguments, references data, studies, or specific cases, and deeply explores the impact of UBI.
+- **9 (Very Detailed)**: The comment presents clear arguments and refers to examples or expert opinions but lacks specific data.
+- **8 (Highly Informative)**: The comment presents multiple viewpoints but does not provide specific data or examples.
+- **7 (Moderately Informative)**: The comment raises relevant points but lacks depth or detailed analysis.
+- **6 (Basic Information)**: The comment presents a simple viewpoint but does not go further into reasoning.
+- **5 (Slightly Informative)**: The comment states a position but does not explain it well.
+- **4 (Very Basic Information)**: The comment makes a simple statement without elaboration.
+- **3 (Minimal Information)**: The comment is very short and lacks substance.
+- **2 (Very Minimal Information)**: The comment is extremely brief, often just a phrase, slogan, or emoji.
+- **1 (No Information)**: The comment is meaningless or consists of only symbols or irrelevant text.
 
 ## Instructions
 - Read the comment carefully.
 - Provide a **detailed reasoning** for your score.
-- Assign a **single score (1-10)** based on the sentiment expressed.
+- Assign a **single score (1-10)** based on the user's comment.
 
 ## Format Instructions
 {format_instructions}\
@@ -105,6 +105,6 @@ class SupportScorer(_LLMScorer):
         super().__init__(_SUPPORT_SYSTEM_PROMPT)
 
 
-class SentimentScorer(_LLMScorer):
+class InfomationDepthScorer(_LLMScorer):
     def __init__(self):
-        super().__init__(_SENTIMENT_SYSTEM_PROMPT)
+        super().__init__(_INFO_DEPTH_SYSTEM_PROMPT)
