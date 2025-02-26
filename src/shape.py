@@ -9,6 +9,12 @@ class StanceClassificationResult:
 
 
 @dataclass
+class TaggingResult:
+    tags: list[str]
+    detail: dict
+
+
+@dataclass
 class ScoringResult:
     score: int
     detail: dict
