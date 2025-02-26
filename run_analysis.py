@@ -6,12 +6,40 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from src.const import STANCE_MAJOR_CATEGORY
-from src.const import STANCE_MINOR_CATEGORY
+from src.const import TOPIC_MAJOR_TAG
+from src.const import TOPIC_MINOR_TAG
 from src.io import load_json
 from src.io import save_json
 from src.io import mkdir_p
 from src.wordcloud import generate_wordcloud
+
+
+TOPIC_MAJOR_TAG_TO_MINOR_TAGS = {
+    TOPIC_MAJOR_TAG.POLITICS.value: [
+        TOPIC_MINOR_TAG.ROLE_OF_GOVERNMENT.value,
+        TOPIC_MINOR_TAG.COMPARISON_WITH_SOCIAL_POLICIES.value,
+        TOPIC_MINOR_TAG.IDEOLOGIES.value,
+        TOPIC_MINOR_TAG.FEASIBILITY_AND_GOVERNANCE.value,
+    ],
+    TOPIC_MAJOR_TAG.ECONOMICS.value: [
+        TOPIC_MINOR_TAG.INFLATION_AND_COST_OF_LIVING.value,
+        TOPIC_MINOR_TAG.TAXATION_AND_BUDGETING.value,
+        TOPIC_MINOR_TAG.LABOR_MARKET_AND_EMPLOYMENT.value,
+        TOPIC_MINOR_TAG.ECONOMIC_GROWTH_AND_PRODUCTIVITY.value,
+    ],
+    TOPIC_MAJOR_TAG.SOCIETY.value: [
+        TOPIC_MINOR_TAG.POVERTY_AND_WEALTH_DISTRIBUTION.value,
+        TOPIC_MINOR_TAG.WORK_ETHIC_AND_MOTIVATION.value,
+        TOPIC_MINOR_TAG.SOCIAL_STABILITY_AND_CRIME_RATE.value,
+        TOPIC_MINOR_TAG.MENTAL_HEALTH_AND_WELL_BEING.value,
+    ],
+    TOPIC_MAJOR_TAG.PHILOSOPHY_AND_ETHICS.value: [
+        TOPIC_MINOR_TAG.EQUALITY_AND_FAIRNESS.value,
+        TOPIC_MINOR_TAG.TECHNOLOGY_AND_THE_FUTURE.value,
+        TOPIC_MINOR_TAG.HUMAN_NATURE_AND_BEHAVIOR.value,
+        TOPIC_MINOR_TAG.FREEDOM_VS_DEPENDENCY.value,
+    ],
+}
 
 
 def parse_args():
@@ -144,6 +172,7 @@ def analyze_scoring(flatten_comments, output_dir):
     plt.ylabel("Information Depth Score (1-10)")
     plt.title("Heatmap: Support Score vs Information Depth Score")
 
+    # Grouping by support and information depth scores
     group_names = ["hh", "hl", "lh", "ll"]
     comment_texts_group = {group_name: [] for group_name in group_names}
     for comment in flatten_comments:
@@ -176,6 +205,34 @@ def analyze_scoring(flatten_comments, output_dir):
         )
 
 
+def analyze_tagging(flatten_comments, output_dir):
+    tags_lst = [comment["topic_tagging"]["tags"] for comment in flatten_comments]
+    df = pd.DataFrame({"tags": tags_lst})
+    df_exploded = df.explode("tags")
+
+    tag_counts = df_exploded["tags"].value_counts()
+    category_counts = {
+        category: {sub: 0 for sub in subs}
+        for category, subs in TOPIC_MAJOR_TAG_TO_MINOR_TAGS.items()
+    }
+
+    for sub_tag, count in tag_counts.items():
+        for category, subs in TOPIC_MAJOR_TAG_TO_MINOR_TAGS.items():
+            if sub_tag in subs:
+                category_counts[category][sub_tag] = count
+
+    df_stacked = pd.DataFrame(category_counts)
+
+    df_stacked.plot(kind="bar", stacked=True, figsize=(12, 8), colormap="viridis")
+    plt.xlabel("Minor Tags")
+    plt.ylabel("Number of Comments")
+    plt.title("Topic Major and Minor Tags Distribution")
+    plt.legend(title="Major Tag")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "topic_dist.png"))
+
+
 def main(args):
     input_path = args.input
     output_dir = args.output
@@ -195,6 +252,7 @@ def main(args):
     generate_stance_wordclouds(stance_result, output_dir)
 
     analyze_scoring(flatten_comments, output_dir)
+    analyze_tagging(flatten_comments, output_dir)
 
     print(f"Results saved in {output_dir}")
 
