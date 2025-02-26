@@ -1,6 +1,11 @@
 import argparse
 import os
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
 from src.const import STANCE_MAJOR_CATEGORY
 from src.const import STANCE_MINOR_CATEGORY
 from src.io import load_json
@@ -32,13 +37,7 @@ def parse_args():
     return args
 
 
-def cluster_by_stance(comments) -> dict:
-    flatten_comments = []
-    for outter_comment in comments:
-        flatten_comments.append(outter_comment)
-        for inner_comment in outter_comment["replies"]:
-            flatten_comments.append(inner_comment)
-
+def cluster_by_stance(flatten_comments) -> dict:
     stance_cluster = {}
     for comment in flatten_comments:
         major_category = comment["stance_cls"]["major_category"]
@@ -92,6 +91,61 @@ def generate_stance_wordclouds(stance_result, output_dir):
     )
 
 
+def analyze_scoring(flatten_comments, output_dir):
+    support_scores = [
+        comment["support_scoring"]["score"] for comment in flatten_comments
+    ]
+    info_depth_scores = [
+        comment["info_depth_scoring"]["score"] for comment in flatten_comments
+    ]
+
+    df = pd.DataFrame(
+        {"support_score": support_scores, "info_depth_score": info_depth_scores}
+    )
+
+    sns.set_style("whitegrid")
+
+    # Distribution for support scores
+    plt.figure(figsize=(8, 5))
+    sns.histplot(
+        df["support_score"], bins=np.arange(1, 12) - 0.5, kde=True, color="blue"
+    )
+    plt.xticks(range(1, 11))
+    plt.xlabel("Support Score (1-10)")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of Support Scores")
+    plt.savefig(os.path.join(output_dir, "support_dist.png"))
+
+    # Distribution for information depth scores
+    plt.figure(figsize=(8, 5))
+    sns.histplot(
+        df["info_depth_score"],
+        bins=np.arange(1, 12) - 0.5,
+        kde=True,
+        color="green",
+    )
+    plt.xticks(range(1, 11))
+    plt.xlabel("Information Depth Score (1-10)")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of Information Depth Scores")
+    plt.savefig(os.path.join(output_dir, "info_depth_dist.png"))
+
+    # Heatmap for support vs information depth scores
+    plt.figure(figsize=(8, 6))
+    heatmap_data = df.pivot_table(
+        index="info_depth_score",
+        columns="support_score",
+        aggfunc=len,
+        fill_value=0,
+    )
+    sns.heatmap(heatmap_data, annot=True, fmt="d", cmap="Blues", linewidths=0.5)
+    plt.savefig(os.path.join(output_dir, "support_vs_info_depth_heatmap.png"))
+
+    plt.xlabel("Support Score (1-10)")
+    plt.ylabel("Information Depth Score (1-10)")
+    plt.title("Heatmap: Support Score vs Information Depth Score")
+
+
 def main(args):
     input_path = args.input
     output_dir = args.output
@@ -100,9 +154,17 @@ def main(args):
 
     comments = load_json(input_path)
 
-    stance_cluster = cluster_by_stance(comments)
+    flatten_comments = []
+    for outter_comment in comments:
+        flatten_comments.append(outter_comment)
+        for inner_comment in outter_comment["replies"]:
+            flatten_comments.append(inner_comment)
+
+    stance_cluster = cluster_by_stance(flatten_comments)
     stance_result = analyze_stance(stance_cluster, output_dir)
     generate_stance_wordclouds(stance_result, output_dir)
+
+    analyze_scoring(flatten_comments, output_dir)
 
     print(f"Results saved in {output_dir}")
 
