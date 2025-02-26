@@ -140,10 +140,40 @@ def analyze_scoring(flatten_comments, output_dir):
     )
     sns.heatmap(heatmap_data, annot=True, fmt="d", cmap="Blues", linewidths=0.5)
     plt.savefig(os.path.join(output_dir, "support_vs_info_depth_heatmap.png"))
-
     plt.xlabel("Support Score (1-10)")
     plt.ylabel("Information Depth Score (1-10)")
     plt.title("Heatmap: Support Score vs Information Depth Score")
+
+    group_names = ["hh", "hl", "lh", "ll"]
+    comment_texts_group = {group_name: [] for group_name in group_names}
+    for comment in flatten_comments:
+        comment_text = comment["content"]
+        support_score = comment["support_scoring"]["score"]
+        info_depth_score = comment["info_depth_scoring"]["score"]
+
+        if support_score >= 7 and info_depth_score >= 7:
+            comment_texts_group["hh"].append(comment_text)
+
+        if support_score >= 7 and info_depth_score <= 4:
+            comment_texts_group["hl"].append(comment_text)
+
+        if support_score <= 4 and info_depth_score >= 7:
+            comment_texts_group["lh"].append(comment_text)
+
+        if support_score <= 4 and info_depth_score <= 4:
+            comment_texts_group["ll"].append(comment_text)
+
+    for group_name, comment_texts in comment_texts_group.items():
+        save_json(
+            os.path.join(output_dir, f"support_vs_info_depth_{group_name}.json"),
+            comment_texts,
+        )
+        generate_wordcloud(
+            "".join(comment_texts),
+            os.path.join(
+                output_dir, f"support_vs_info_depth_{group_name}_wordcloud.png"
+            ),
+        )
 
 
 def main(args):
