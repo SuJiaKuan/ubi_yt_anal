@@ -133,7 +133,8 @@ def analyze_scoring(flatten_comments, output_dir):
 
     sns.set_style("whitegrid")
 
-    # Distribution for support scores
+    ### Distribution for support scores ###
+
     plt.figure(figsize=(8, 5))
     sns.histplot(
         df["support_score"], bins=np.arange(1, 12) - 0.5, kde=True, color="blue"
@@ -144,7 +145,8 @@ def analyze_scoring(flatten_comments, output_dir):
     plt.title("Distribution of Support Scores")
     plt.savefig(os.path.join(output_dir, "support_dist.png"))
 
-    # Distribution for information depth scores
+    ### Distribution for information depth scores ###
+
     plt.figure(figsize=(8, 5))
     sns.histplot(
         df["info_depth_score"],
@@ -158,7 +160,8 @@ def analyze_scoring(flatten_comments, output_dir):
     plt.title("Distribution of Information Depth Scores")
     plt.savefig(os.path.join(output_dir, "info_depth_dist.png"))
 
-    # Heatmap for support vs information depth scores
+    ### Heatmap for support vs information depth scores ###
+
     plt.figure(figsize=(8, 6))
     heatmap_data = df.pivot_table(
         index="info_depth_score",
@@ -172,7 +175,8 @@ def analyze_scoring(flatten_comments, output_dir):
     plt.ylabel("Information Depth Score (1-10)")
     plt.title("Heatmap: Support Score vs Information Depth Score")
 
-    # Grouping by support and information depth scores
+    ### Group by support and information depth scores and generate wordclouds ###
+
     group_names = ["hh", "hl", "lh", "ll"]
     comment_texts_group = {group_name: [] for group_name in group_names}
     for comment in flatten_comments:
@@ -206,6 +210,7 @@ def analyze_scoring(flatten_comments, output_dir):
 
 
 def analyze_tagging(flatten_comments, output_dir):
+    ### Major and minor tags distribution ###
     tags_lst = [comment["topic_tagging"]["tags"] for comment in flatten_comments]
     df = pd.DataFrame({"tags": tags_lst})
     df_exploded = df.explode("tags")
@@ -231,6 +236,22 @@ def analyze_tagging(flatten_comments, output_dir):
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, "topic_dist.png"))
+
+    ### Group by major tags and generate wordclouds ###
+
+    for major_tag, minor_tags in TOPIC_MAJOR_TAG_TO_MINOR_TAGS.items():
+        comment_texts = []
+        for comment in flatten_comments:
+            for minor_tag in minor_tags:
+                if minor_tag in comment["topic_tagging"]["tags"]:
+                    comment_texts.append(comment["content"])
+                    break
+
+        save_json(os.path.join(output_dir, f"topic_{major_tag}.json"), comment_texts)
+        generate_wordcloud(
+            "".join(comment_texts),
+            os.path.join(output_dir, f"topic_{major_tag}_wordcloud.png"),
+        )
 
 
 def main(args):
