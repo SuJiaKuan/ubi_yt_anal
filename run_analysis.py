@@ -12,6 +12,7 @@ from src.io import load_json
 from src.io import save_json
 from src.io import mkdir_p
 from src.wordcloud import generate_wordcloud
+from src.cooccur_graph import generate_cooccurrence_graph
 
 
 TOPIC_MAJOR_TAG_TO_MINOR_TAGS = {
@@ -63,6 +64,13 @@ def parse_args():
     args = parser.parse_args()
 
     return args
+
+
+def generate_all_cooccur_graph(flatten_comments, output_dir):
+    text_comments = [comment["content"] for comment in flatten_comments]
+    generate_cooccurrence_graph(
+        text_comments, os.path.join(output_dir, "all_cooccur.html")
+    )
 
 
 def cluster_by_stance(flatten_comments) -> dict:
@@ -175,7 +183,7 @@ def analyze_scoring(flatten_comments, output_dir):
     plt.ylabel("Information Depth Score (1-10)")
     plt.title("Heatmap: Support Score vs Information Depth Score")
 
-    ### Group by support and information depth scores and generate wordclouds ###
+    ### Group by support and information depth scores and generate wordclouds & word co-occurence graphs ###
 
     group_names = ["hh", "hl", "lh", "ll"]
     comment_texts_group = {group_name: [] for group_name in group_names}
@@ -205,6 +213,12 @@ def analyze_scoring(flatten_comments, output_dir):
             "".join(comment_texts),
             os.path.join(
                 output_dir, f"support_vs_info_depth_{group_name}_wordcloud.png"
+            ),
+        )
+        generate_cooccurrence_graph(
+            comment_texts,
+            os.path.join(
+                output_dir, f"support_vs_info_depth_{group_name}_cooccur.html"
             ),
         )
 
@@ -237,7 +251,7 @@ def analyze_tagging(flatten_comments, output_dir):
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, "topic_dist.png"))
 
-    ### Group by major tags and generate wordclouds ###
+    ### Group by major tags and generate wordclouds & co-occurence graph ###
 
     for major_tag, minor_tags in TOPIC_MAJOR_TAG_TO_MINOR_TAGS.items():
         comment_texts = []
@@ -251,6 +265,10 @@ def analyze_tagging(flatten_comments, output_dir):
         generate_wordcloud(
             "".join(comment_texts),
             os.path.join(output_dir, f"topic_{major_tag}_wordcloud.png"),
+        )
+        generate_cooccurrence_graph(
+            comment_texts,
+            os.path.join(output_dir, f"topic_{major_tag}_cooccur.html"),
         )
 
 
@@ -267,6 +285,8 @@ def main(args):
         flatten_comments.append(outter_comment)
         for inner_comment in outter_comment["replies"]:
             flatten_comments.append(inner_comment)
+
+    generate_all_cooccur_graph(flatten_comments, output_dir)
 
     stance_cluster = cluster_by_stance(flatten_comments)
     stance_result = analyze_stance(stance_cluster, output_dir)
