@@ -13,9 +13,9 @@ def generate_wordcloud(
     text,
     output_path,
     top_k=50,
-    dictfile="data/wordcloud/dict.txt",
-    stopfile="data/wordcloud/stopwords.txt",
-    fontpath="data/wordcloud/msjh.ttc",
+    dictfile="data/nlp/dict.txt",
+    stopfile="data/nlp/stopwords.txt",
+    fontpath="data/nlp/msjh.ttc",
 ):
     jieba.set_dictionary(dictfile)
     jieba.analyse.set_stop_words(stopfile)
