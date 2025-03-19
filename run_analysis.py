@@ -299,11 +299,18 @@ def analyze_cross(flatten_comments, output_dir):
     info_depth_scores = [
         comment["info_depth_scoring"]["score"] for comment in flatten_comments
     ]
+    like_counts = [comment["likes"] for comment in flatten_comments]
+    reply_counts = [
+        len(comment["replies"]) if "replies" in comment else 0
+        for comment in flatten_comments
+    ]
 
     df = pd.DataFrame(
         {
             "support_score": support_scores,
             "info_depth_score": info_depth_scores,
+            "like_count": like_counts,
+            "reply_count": reply_counts,
             "tags": tags_lst,
         }
     )
@@ -336,6 +343,35 @@ def analyze_cross(flatten_comments, output_dir):
                 output_dir, f"topic_vs_{score_type.replace('_score', '')}_heatmap.png"
             )
         )
+
+    ### Scatter plot for support scores vs like count / reply count ###
+
+    plt.figure(figsize=(12, 6))
+
+    df_filtered = df[df["like_count"] > 0]
+    sns.scatterplot(
+        data=df_filtered,
+        x="support_score",
+        y="like_count",
+        marker="x",
+        alpha=0.7,
+        color="blue",
+    )
+    df_filtered = df[df["reply_count"] > 0]
+    sns.scatterplot(
+        data=df_filtered,
+        x="support_score",
+        y="reply_count",
+        marker="x",
+        alpha=0.7,
+        color="red",
+    )
+
+    plt.xlabel("Support Score (1-10)")
+    plt.ylabel("Count")
+    plt.title("Support Score vs Like Count & Reply Count")
+    plt.legend(title="Metrics", labels=["Like Count", "Reply Count"])
+    plt.savefig(os.path.join(output_dir, "support_vs_like_reply_count.png"))
 
 
 def main(args):
