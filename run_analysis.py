@@ -13,6 +13,7 @@ from src.io import save_json
 from src.io import mkdir_p
 from src.wordcloud import generate_wordcloud
 from src.cooccur_graph import generate_cooccurrence_graph
+from src.nlp import count_word_frequencies
 
 TOPIC_MINOR_TAGS_LIST = [
     TOPIC_MINOR_TAG.ROLE_OF_GOVERNMENT.value,
@@ -85,8 +86,10 @@ def parse_args():
     return args
 
 
-def generate_all_cooccur_graph(flatten_comments, output_dir):
+def analyze_all(flatten_comments, output_dir):
     text_comments = [comment["content"] for comment in flatten_comments]
+
+    count_word_frequencies(text_comments, os.path.join(output_dir, "all_word_freq.txt"))
     generate_cooccurrence_graph(
         text_comments, os.path.join(output_dir, "all_cooccur.html")
     )
@@ -234,6 +237,10 @@ def analyze_scoring(flatten_comments, output_dir):
                 output_dir, f"support_vs_info_depth_{group_name}_wordcloud.png"
             ),
         )
+        count_word_frequencies(
+            comment_texts,
+            os.path.join(output_dir, f"support_vs_info_depth_{group_name}_cooccur.txt"),
+        )
         generate_cooccurrence_graph(
             comment_texts,
             os.path.join(
@@ -284,6 +291,10 @@ def analyze_tagging(flatten_comments, output_dir):
         generate_wordcloud(
             "".join(comment_texts),
             os.path.join(output_dir, f"topic_{major_tag}_wordcloud.png"),
+        )
+        count_word_frequencies(
+            comment_texts,
+            os.path.join(output_dir, f"topic_{major_tag}_cooccur.txt"),
         )
         generate_cooccurrence_graph(
             comment_texts,
@@ -388,7 +399,9 @@ def main(args):
         for inner_comment in outter_comment["replies"]:
             flatten_comments.append(inner_comment)
 
-    generate_all_cooccur_graph(flatten_comments, output_dir)
+    comment_texts = [comment["content"] for comment in flatten_comments]
+
+    analyze_all(flatten_comments, output_dir)
 
     stance_cluster = cluster_by_stance(flatten_comments)
     stance_result = analyze_stance(stance_cluster, output_dir)
