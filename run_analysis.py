@@ -11,8 +11,8 @@ from src.const import TOPIC_MINOR_TAG
 from src.io import load_json
 from src.io import save_json
 from src.io import mkdir_p
-from src.wordcloud import generate_wordcloud
-from src.cooccur_graph import generate_cooccurrence_graph
+from src.nlp import generate_wordcloud
+from src.nlp import generate_cooccurrence_graph
 from src.nlp import count_word_frequencies
 
 TOPIC_MINOR_TAGS_LIST = [
