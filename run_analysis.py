@@ -21,6 +21,8 @@ from src.nlp import generate_wordcloud
 from src.nlp import generate_cooccurrence_graph
 from src.nlp import count_word_frequencies
 
+FIG_DPI = 300
+
 TOPIC_MINOR_TAGS_LIST = [
     TOPIC_MINOR_TAG.ROLE_OF_GOVERNMENT.value,
     TOPIC_MINOR_TAG.COMPARISON_WITH_SOCIAL_POLICIES.value,
@@ -179,7 +181,8 @@ def analyze_scoring(flatten_comments, output_dir):
     plt.xlabel("Support Score (1-10)")
     plt.ylabel("Frequency")
     plt.title("Distribution of Support Scores")
-    plt.savefig(os.path.join(output_dir, "support_dist.png"))
+    plt.savefig(os.path.join(output_dir, "support_dist.png"), dpi=FIG_DPI)
+    plt.close()
 
     ### Distribution for information depth scores ###
 
@@ -194,7 +197,8 @@ def analyze_scoring(flatten_comments, output_dir):
     plt.xlabel("Information Depth Score (1-10)")
     plt.ylabel("Frequency")
     plt.title("Distribution of Information Depth Scores")
-    plt.savefig(os.path.join(output_dir, "info_depth_dist.png"))
+    plt.savefig(os.path.join(output_dir, "info_depth_dist.png"), dpi=FIG_DPI)
+    plt.close()
 
     ### Heatmap for support vs information depth scores ###
 
@@ -206,7 +210,10 @@ def analyze_scoring(flatten_comments, output_dir):
         fill_value=0,
     )
     sns.heatmap(heatmap_data, annot=True, fmt="d", cmap="Blues", linewidths=0.5)
-    plt.savefig(os.path.join(output_dir, "support_vs_info_depth_heatmap.png"))
+    plt.savefig(
+        os.path.join(output_dir, "support_vs_info_depth_heatmap.png"), dpi=FIG_DPI
+    )
+    plt.close()
     plt.xlabel("Support Score (1-10)")
     plt.ylabel("Information Depth Score (1-10)")
     plt.title("Heatmap: Support Score vs Information Depth Score")
@@ -281,7 +288,8 @@ def analyze_tagging(flatten_comments, output_dir):
     plt.legend(title="Major Tag")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, "topic_dist.png"))
+    plt.savefig(os.path.join(output_dir, "topic_dist.png"), dpi=FIG_DPI)
+    plt.close()
 
     ### Group by major tags and generate wordclouds & co-occurence graph ###
 
@@ -358,8 +366,10 @@ def analyze_cross(flatten_comments, output_dir):
         plt.savefig(
             os.path.join(
                 output_dir, f"topic_vs_{score_type.replace('_score', '')}_heatmap.png"
-            )
+            ),
+            dpi=FIG_DPI,
         )
+        plt.close()
 
     ### Scatter plot for support scores vs like count / reply count ###
 
@@ -388,7 +398,10 @@ def analyze_cross(flatten_comments, output_dir):
     plt.ylabel("Count")
     plt.title("Support Score vs Like Count & Reply Count")
     plt.legend(title="Metrics", labels=["Like Count", "Reply Count"])
-    plt.savefig(os.path.join(output_dir, "support_vs_like_reply_count.png"))
+    plt.savefig(
+        os.path.join(output_dir, "support_vs_like_reply_count.png"), dpi=FIG_DPI
+    )
+    plt.close()
 
 
 def count_framing_freq(flatten_comments, output_path):
@@ -444,7 +457,8 @@ def count_framing_freq(flatten_comments, output_path):
     plt.tight_layout()
     plt.gca().invert_yaxis()
 
-    plt.savefig(output_path)
+    plt.savefig(output_path, dpi=FIG_DPI)
+    plt.close()
 
 
 def plot_radial_concept_network(
@@ -501,7 +515,8 @@ def plot_radial_concept_network(
         plt.gca().add_patch(circle)
 
     plt.axis("off")
-    plt.savefig(output_path)
+    plt.savefig(output_path, dpi=FIG_DPI)
+    plt.close()
 
 
 def build_and_plot_concept_network(
