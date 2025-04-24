@@ -1,5 +1,6 @@
 import argparse
 import os
+from collections import Counter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,6 +9,7 @@ import seaborn as sns
 
 from src.const import TOPIC_MAJOR_TAG
 from src.const import TOPIC_MINOR_TAG
+from src.const import ARGUMENT_STANCE_CATEGORY
 from src.io import load_json
 from src.io import save_json
 from src.io import mkdir_p
@@ -385,6 +387,66 @@ def analyze_cross(flatten_comments, output_dir):
     plt.savefig(os.path.join(output_dir, "support_vs_like_reply_count.png"))
 
 
+def count_framing_freq(flatten_comments, output_path):
+    # Count the frequency of each argument label and stance
+    argument_counts = Counter()
+    for comment in flatten_comments:
+        for framed_argument in comment["argument_framing"]:
+            label = framed_argument["label"]
+            stance = framed_argument["stance"]
+            argument_counts[(label, stance)] += 1
+
+    # Convert to DataFrame for plotting
+    arg_df = pd.DataFrame(
+        [
+            {"label": label, "stance": stance, "count": count}
+            for (label, stance), count in argument_counts.items()
+        ]
+    )
+
+    # Pivot to get pro and con counts for each label
+    pivot_df = arg_df.pivot(index="label", columns="stance", values="count").fillna(0)
+
+    # Ensure both 'Pro' and 'Con' columns exist
+    for col in [ARGUMENT_STANCE_CATEGORY.PRO.value, ARGUMENT_STANCE_CATEGORY.CON.value]:
+        if col not in pivot_df.columns:
+            pivot_df[col] = 0
+
+    # Sort by total frequency
+    pivot_df["Total"] = (
+        pivot_df[ARGUMENT_STANCE_CATEGORY.PRO.value]
+        + pivot_df[ARGUMENT_STANCE_CATEGORY.CON.value]
+    )
+    pivot_df = pivot_df.sort_values("Total", ascending=False)
+
+    # Plotting
+    fig, ax = plt.subplots(figsize=(8, 12))
+    ax.barh(
+        pivot_df.index,
+        pivot_df[ARGUMENT_STANCE_CATEGORY.PRO.value],
+        color="mediumseagreen",
+        label="pro",
+    )
+    ax.barh(
+        pivot_df.index,
+        -pivot_df[ARGUMENT_STANCE_CATEGORY.CON.value],
+        color="indianred",
+        label="con",
+    )
+
+    ax.set_xlabel("Frequency")
+    ax.set_ylabel("Argument Label")
+    ax.legend()
+    plt.tight_layout()
+    plt.gca().invert_yaxis()
+
+    plt.savefig(output_path)
+
+
+def analyze_framing(flatten_comments, output_dir):
+    count_framing_freq(flatten_comments, os.path.join(output_dir, "framing_freq.png"))
+
+
 def main(args):
     input_path = args.input
     output_dir = args.output
@@ -410,6 +472,7 @@ def main(args):
     analyze_scoring(flatten_comments, output_dir)
     analyze_tagging(flatten_comments, output_dir)
     analyze_cross(flatten_comments, output_dir)
+    analyze_framing(flatten_comments, output_dir)
 
     print(f"Results saved in {output_dir}")
 
