@@ -610,10 +610,82 @@ def build_and_plot_concept_network(
     )
 
 
+def extract_top_concept_pair_examples(comments, output_path, top_n=5):
+    """
+    Extract representative comments for top N Pro and Con concept co-occurrence pairs
+    without repetition of concept pair or comment.
+
+    Args:
+        comments (list): List of annotated comment objects with 'argument_framing'
+        output_path (str): Path to save the output CSV file
+        top_n (int): Number of top co-occurring pairs to extract for each stance (Pro/Con)
+
+    Returns:
+        pd.DataFrame: Table of concept pairs with stance and example comment
+    """
+    cooccur_map = defaultdict(
+        list
+    )  # (label1, label2, stance) -> list of comment indices
+
+    # Step 1: build co-occurrence map
+    for idx, comment in enumerate(comments):
+        labels_by_stance = {"Pro": [], "Con": []}
+        for item in comment["argument_framing"]:
+            labels_by_stance[item["stance"]].append(item["label"])
+        for stance, labels in labels_by_stance.items():
+            for pair in combinations(sorted(set(labels)), 2):
+                key = (pair[0], pair[1], stance)
+                cooccur_map[key].append(idx)
+
+    # Step 2: split and sort by count
+    pro_pairs = [(k, len(v)) for k, v in cooccur_map.items() if k[2] == "Pro"]
+    con_pairs = [(k, len(v)) for k, v in cooccur_map.items() if k[2] == "Con"]
+    pro_pairs.sort(key=lambda x: x[1], reverse=True)
+    con_pairs.sort(key=lambda x: x[1], reverse=True)
+
+    # Step 3: pick unique top pairs with non-repeated comments
+    used_pairs = set()
+    used_comments = set()
+    selected_examples = []
+
+    def add_unique_examples(pairs, stance_label, max_items=5):
+        count = 0
+        for (label1, label2, stance), freq in pairs:
+            pair_key = frozenset([label1, label2])
+            if pair_key in used_pairs:
+                continue
+            indices = cooccur_map[(label1, label2, stance)]
+            for idx in indices:
+                if idx not in used_comments:
+                    used_pairs.add(pair_key)
+                    used_comments.add(idx)
+                    selected_examples.append(
+                        {
+                            "Concept Pair": f"{label1} + {label2}",
+                            "Stance": stance_label,
+                            "Comment": comments[idx]["content"],
+                        }
+                    )
+                    count += 1
+                    break  # one comment per pair
+            if count >= max_items:
+                break
+
+    add_unique_examples(con_pairs, "Con", max_items=top_n)
+    add_unique_examples(pro_pairs, "Pro", max_items=top_n)
+
+    df = pd.DataFrame(selected_examples)
+
+    df.to_csv(output_path, index=False)
+
+
 def analyze_framing(flatten_comments, output_dir):
     count_framing_freq(flatten_comments, os.path.join(output_dir, "framing_freq.png"))
     build_and_plot_concept_network(
         flatten_comments, os.path.join(output_dir, "framing_concept_network.png")
+    )
+    extract_top_concept_pair_examples(
+        flatten_comments, os.path.join(output_dir, "framing_concept_pair_examples.csv")
     )
 
 
