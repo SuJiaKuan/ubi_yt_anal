@@ -529,7 +529,10 @@ def build_and_plot_concept_network(
     total_comments = len(comments)
     cooccur_counts = {}
     for entry in comments:
-        labels_by_stance = {"Pro": [], "Con": []}
+        labels_by_stance = {
+            ARGUMENT_STANCE_CATEGORY.PRO.value: [],
+            ARGUMENT_STANCE_CATEGORY.CON.value: [],
+        }
         for item in entry["argument_framing"]:
             labels_by_stance[item["stance"]].append(item["label"])
         for stance, label_list in labels_by_stance.items():
@@ -552,8 +555,8 @@ def build_and_plot_concept_network(
             G.add_edge(
                 label1,
                 label2,
-                pro=norm_value if stance == "Pro" else 0,
-                con=norm_value if stance == "Con" else 0,
+                pro=norm_value if stance == ARGUMENT_STANCE_CATEGORY.PRO.value else 0,
+                con=norm_value if stance == ARGUMENT_STANCE_CATEGORY.CON.value else 0,
             )
 
     # Step 3: Centrality and edge style
