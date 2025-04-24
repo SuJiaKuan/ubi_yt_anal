@@ -1,8 +1,12 @@
 import argparse
 import os
 from collections import Counter
+from collections import defaultdict
+from itertools import combinations
+
 
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -443,8 +447,156 @@ def count_framing_freq(flatten_comments, output_path):
     plt.savefig(output_path)
 
 
+def plot_radial_concept_network(
+    G: nx.Graph,
+    centrality: dict,
+    pos_radial: dict,
+    edge_colors: list,
+    edge_widths: list,
+    num_shells: int,
+    output_path: str,
+    figsize=(12, 12),
+    alpha_range=(0.01, 0.9),
+):
+    """
+    Plot a radial concept network with edge transparency varying by weight.
+    """
+    plt.figure(figsize=figsize)
+
+    node_sizes = [centrality[n] * 2500 for n in G.nodes()]
+
+    # Transparency calculation
+    edge_alphas = []
+    min_width = min(edge_widths)
+    max_width = max(edge_widths)
+    for width in edge_widths:
+        if max_width == min_width:
+            alpha = sum(alpha_range) / 2
+        else:
+            alpha = alpha_range[0] + (alpha_range[1] - alpha_range[0]) * (
+                (width - min_width) / (max_width - min_width)
+            )
+        edge_alphas.append(alpha)
+
+    # Draw graph
+    nx.draw_networkx_nodes(G, pos_radial, node_color="lightgray", node_size=node_sizes)
+    nx.draw_networkx_labels(G, pos_radial, font_size=8)
+    for (u, v), color, width, alpha in zip(
+        G.edges(), edge_colors, edge_widths, edge_alphas
+    ):
+        nx.draw_networkx_edges(
+            G, pos_radial, edgelist=[(u, v)], edge_color=color, width=width, alpha=alpha
+        )
+
+    # Draw concentric green rings
+    for r in range(1, num_shells + 1):
+        circle = plt.Circle(
+            (0, 0),
+            r * 1.5,
+            color="mediumseagreen",
+            fill=False,
+            linestyle="--",
+            alpha=0.2,
+        )
+        plt.gca().add_patch(circle)
+
+    plt.axis("off")
+    plt.savefig(output_path)
+
+
+def build_and_plot_concept_network(
+    comments: list, output_path: str, threshold: float = 0.03, num_shells: int = 5
+):
+    """
+    Build and visualize a radial concept co-occurrence network from annotated comments.
+    """
+    # Step 1: Co-occurrence counts
+    total_comments = len(comments)
+    cooccur_counts = {}
+    for entry in comments:
+        labels_by_stance = {"Pro": [], "Con": []}
+        for item in entry["argument_framing"]:
+            labels_by_stance[item["stance"]].append(item["label"])
+        for stance, label_list in labels_by_stance.items():
+            for pair in combinations(sorted(set(label_list)), 2):
+                key = (pair[0], pair[1], stance)
+                cooccur_counts[key] = cooccur_counts.get(key, 0) + 1
+
+    # Step 2: Normalize and filter
+    normalized_counts = defaultdict(float)
+    for (label1, label2, stance), count in cooccur_counts.items():
+        normalized_counts[(label1, label2, stance)] = count / total_comments
+
+    G = nx.Graph()
+    for (label1, label2, stance), norm_value in normalized_counts.items():
+        if norm_value < threshold:
+            continue
+        if G.has_edge(label1, label2):
+            G[label1][label2][stance.lower()] += norm_value
+        else:
+            G.add_edge(
+                label1,
+                label2,
+                pro=norm_value if stance == "Pro" else 0,
+                con=norm_value if stance == "Con" else 0,
+            )
+
+    # Step 3: Centrality and edge style
+    centrality = nx.degree_centrality(G)
+    edges = G.edges()
+    edge_colors = []
+    edge_widths = []
+    for u, v in edges:
+        pro = G[u][v]["pro"]
+        con = G[u][v]["con"]
+        total = pro + con
+        edge_widths.append(total * 30)
+        edge_colors.append(
+            "mediumseagreen" if pro > con else "indianred" if con > pro else "gray"
+        )
+
+    # Step 4: Radial layout with concentric logic
+    sorted_nodes = sorted(centrality.items(), key=lambda x: x[1], reverse=True)
+    top_node = sorted_nodes[0][0]
+    remaining_nodes = [n[0] for n in sorted_nodes[1:]]
+
+    shell_counts = [1, 6, 10, 12]
+    layered_nodes = [[] for _ in range(num_shells)]
+    current_index = 0
+    for layer in range(num_shells - 1):
+        count = shell_counts[layer] if layer < len(shell_counts) else 0
+        layered_nodes[layer] = remaining_nodes[current_index : current_index + count]
+        current_index += count
+    layered_nodes[num_shells - 1] = remaining_nodes[current_index:]
+
+    pos_radial = {top_node: (0, 0)}
+    for layer_idx, nodes in enumerate(layered_nodes):
+        radius = (layer_idx + 1) * 1.5
+        angle_step = 2 * np.pi / len(nodes) if nodes else 1
+        angle_offset = (layer_idx % 2) * (angle_step / 2)
+        for i, node in enumerate(nodes):
+            angle = i * angle_step + angle_offset
+            x = radius * np.cos(angle)
+            y = radius * np.sin(angle)
+            pos_radial[node] = (x, y)
+
+    # Step 5: Plot
+    plot_radial_concept_network(
+        G,
+        centrality,
+        pos_radial,
+        edge_colors,
+        edge_widths,
+        num_shells,
+        output_path,
+    )
+
+
 def analyze_framing(flatten_comments, output_dir):
     count_framing_freq(flatten_comments, os.path.join(output_dir, "framing_freq.png"))
+    build_and_plot_concept_network(
+        flatten_comments, os.path.join(output_dir, "framing_concept_network.png")
+    )
 
 
 def main(args):
