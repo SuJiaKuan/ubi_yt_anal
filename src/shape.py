@@ -18,3 +18,10 @@ class TaggingResult:
 class ScoringResult:
     score: int
     detail: dict
+
+
+@dataclass
+class FramedArgumentResult:
+    reason: str
+    label: str
+    stance: str
