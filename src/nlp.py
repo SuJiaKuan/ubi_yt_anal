@@ -218,7 +218,9 @@ def generate_cooccurrence_graph(
 
         # Set transparency based on edge weight
         alpha = (
-            0.2 + (weight - min_weight) / (max_weight - min_weight) * 0.6
+            0.5
+            if min_weight == max_weight
+            else (0.2 + (weight - min_weight) / (max_weight - min_weight) * 0.6)
         )  # Transparency range 0.2 ~ 0.8
 
         edge["color"] = {
