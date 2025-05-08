@@ -14,6 +14,7 @@ import seaborn as sns
 from src.const import TOPIC_MAJOR_TAG
 from src.const import TOPIC_MINOR_TAG
 from src.const import ARGUMENT_STANCE_CATEGORY
+from src.const import ARGUMENT_LABEL
 from src.io import load_json
 from src.io import save_json
 from src.io import mkdir_p
@@ -82,6 +83,17 @@ def parse_args():
         help="The input data path",
     )
     parser.add_argument(
+        "--pickup_framings",
+        nargs="+",
+        default=[
+            ARGUMENT_LABEL.FAIRNESS.value,
+            ARGUMENT_LABEL.HUMAN_NATURE_AND_LAZINESS.value,
+            ARGUMENT_LABEL.CAPITALISM.value,
+            ARGUMENT_LABEL.REDISTRIBUTION.value,
+        ],
+        help="The argument framings for specific analysis",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         type=str,
@@ -94,13 +106,23 @@ def parse_args():
     return args
 
 
-def analyze_all(flatten_comments, output_dir):
+def analyze_all(flatten_comments, output_dir, num_top_comments=10):
     text_comments = [comment["content"] for comment in flatten_comments]
 
     count_word_frequencies(text_comments, os.path.join(output_dir, "all_word_freq.txt"))
     generate_cooccurrence_graph(
         text_comments, os.path.join(output_dir, "all_cooccur.html")
     )
+    generate_wordcloud(
+        "".join(text_comments),
+        os.path.join(output_dir, "all_wordcloud.png"),
+    )
+    # Save the top comments
+    top_comments = sorted(flatten_comments, key=lambda x: x["likes"], reverse=True)[
+        :num_top_comments
+    ]
+    top_comments_text = [comment["content"] for comment in top_comments]
+    save_json(os.path.join(output_dir, "all_top_comments.json"), top_comments_text)
 
 
 def cluster_by_stance(flatten_comments) -> dict:
@@ -689,9 +711,56 @@ def analyze_framing(flatten_comments, output_dir):
     )
 
 
+def filter_comments_by_framing(flatten_comments, framings, stance=None, max_len=5):
+    """
+    Filter comments based on the specified argument framing.
+
+    Args:
+        flatten_comments (list): List of comments to filter.
+        framings (list): List of argument framings to include.
+        stance (str, optional): Stance to filter by. Defaults to None.
+        max_len (int, optional): Maximum length of argument framing. Defaults to 5.
+
+    Returns:
+        list: Filtered list of comments.
+    """
+    filtered_comments = []
+    for comment in flatten_comments:
+        if len(comment["argument_framing"]) > max_len:
+            continue
+        for framed_argument in comment["argument_framing"]:
+            if framed_argument["label"] in framings and (
+                stance is None or framed_argument["stance"] == stance
+            ):
+                filtered_comments.append(comment)
+                break
+    return filtered_comments
+
+
+def analyze_pickup_framings(flatten_comments, pickup_framings, output_dir):
+    for pickup_framing in pickup_framings:
+        for stance in [
+            ARGUMENT_STANCE_CATEGORY.PRO.value,
+            ARGUMENT_STANCE_CATEGORY.CON.value,
+        ]:
+            pickup_output_dir = os.path.join(output_dir, pickup_framing, stance)
+            mkdir_p(pickup_output_dir)
+
+            filtered_comments = filter_comments_by_framing(
+                flatten_comments, [pickup_framing], stance=stance
+            )
+
+            if not filtered_comments:
+                continue
+
+            analyze_all(filtered_comments, pickup_output_dir)
+            analyze_framing(filtered_comments, pickup_output_dir)
+
+
 def main(args):
     input_path = args.input
     output_dir = args.output
+    pickup_framings = args.pickup_framings
 
     mkdir_p(output_dir)
 
@@ -703,8 +772,6 @@ def main(args):
         for inner_comment in outter_comment["replies"]:
             flatten_comments.append(inner_comment)
 
-    comment_texts = [comment["content"] for comment in flatten_comments]
-
     analyze_all(flatten_comments, output_dir)
 
     stance_cluster = cluster_by_stance(flatten_comments)
@@ -715,6 +782,12 @@ def main(args):
     analyze_tagging(flatten_comments, output_dir)
     analyze_cross(flatten_comments, output_dir)
     analyze_framing(flatten_comments, output_dir)
+
+    analyze_pickup_framings(
+        flatten_comments,
+        pickup_framings,
+        output_dir,
+    )
 
     print(f"Results saved in {output_dir}")
 
