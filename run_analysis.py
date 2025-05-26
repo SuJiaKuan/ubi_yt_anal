@@ -79,8 +79,9 @@ def parse_args():
     )
     parser.add_argument(
         "input",
+        nargs="+",
         type=str,
-        help="The input data path",
+        help="The input data path(s).",
     )
     parser.add_argument(
         "--pickup_framings",
@@ -758,13 +759,22 @@ def analyze_pickup_framings(flatten_comments, pickup_framings, output_dir):
 
 
 def main(args):
-    input_path = args.input
+    input_paths = args.input
     output_dir = args.output
     pickup_framings = args.pickup_framings
 
     mkdir_p(output_dir)
 
-    comments = load_json(input_path)
+    comments = []
+    for input_path in input_paths:
+        print(f"Loading data from: {input_path}")
+        data = load_json(input_path)
+        if isinstance(data, list):
+            comments.extend(data)
+        else:
+            print(
+                f"Warning: Expected a list from {input_path}, got {type(data)}. Skipping this file."
+            )
 
     flatten_comments = []
     for outter_comment in comments:
