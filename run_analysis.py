@@ -180,6 +180,12 @@ def generate_stance_wordclouds(stance_result, output_dir):
     )
 
 
+def analyze_stance(flatten_comments, output_dir):
+    stance_cluster = cluster_by_stance(flatten_comments)
+    stance_result = analyze_stance(stance_cluster, output_dir)
+    generate_stance_wordclouds(stance_result, output_dir)
+
+
 def analyze_scoring(flatten_comments, output_dir):
     support_scores = [
         comment["support_scoring"]["score"] for comment in flatten_comments
@@ -196,12 +202,10 @@ def analyze_scoring(flatten_comments, output_dir):
 
     ### Distribution for support scores ###
 
-    plt.figure(figsize=(8, 5))
-    sns.histplot(
-        df["support_score"], bins=np.arange(1, 12) - 0.5, kde=True, color="blue"
-    )
-    plt.xticks(range(1, 11))
-    plt.xlabel("Support Score (1-10)")
+    plt.figure(figsize=(10, 5))
+    sns.histplot(df["support_score"], bins=np.arange(1, 102, 2), kde=True, color="blue")
+    plt.xticks(np.arange(0, 101, 10))
+    plt.xlabel("Support Score (1-100)")
     plt.ylabel("Frequency")
     plt.title("Distribution of Support Scores")
     plt.savefig(os.path.join(output_dir, "support_dist.png"), dpi=FIG_DPI)
@@ -209,15 +213,12 @@ def analyze_scoring(flatten_comments, output_dir):
 
     ### Distribution for information depth scores ###
 
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(10, 5))
     sns.histplot(
-        df["info_depth_score"],
-        bins=np.arange(1, 12) - 0.5,
-        kde=True,
-        color="green",
+        df["info_depth_score"], bins=np.arange(1, 102, 2), kde=True, color="green"
     )
-    plt.xticks(range(1, 11))
-    plt.xlabel("Information Depth Score (1-10)")
+    plt.xticks(np.arange(0, 101, 10))
+    plt.xlabel("Information Depth Score (1-100)")
     plt.ylabel("Frequency")
     plt.title("Distribution of Information Depth Scores")
     plt.savefig(os.path.join(output_dir, "info_depth_dist.png"), dpi=FIG_DPI)
@@ -225,21 +226,25 @@ def analyze_scoring(flatten_comments, output_dir):
 
     ### Heatmap for support vs information depth scores ###
 
-    plt.figure(figsize=(8, 6))
-    heatmap_data = df.pivot_table(
-        index="info_depth_score",
-        columns="support_score",
-        aggfunc=len,
-        fill_value=0,
+    df["support_bin"] = pd.cut(
+        df["support_score"], bins=np.arange(0, 105, 5), labels=np.arange(5, 105, 5)
     )
-    sns.heatmap(heatmap_data, annot=True, fmt="d", cmap="Blues", linewidths=0.5)
+    df["info_bin"] = pd.cut(
+        df["info_depth_score"], bins=np.arange(0, 105, 5), labels=np.arange(5, 105, 5)
+    )
+
+    plt.figure(figsize=(12, 10))
+    heatmap_data = df.pivot_table(
+        index="info_bin", columns="support_bin", aggfunc="size", fill_value=0
+    )
+    sns.heatmap(heatmap_data, annot=False, fmt="d", cmap="Blues", linewidths=0.5)
+    plt.xlabel("Support Score (Binned, 1-100)")
+    plt.ylabel("Information Depth Score (Binned, 1-100)")
+    plt.title("Heatmap: Support Score vs Information Depth Score")
     plt.savefig(
         os.path.join(output_dir, "support_vs_info_depth_heatmap.png"), dpi=FIG_DPI
     )
     plt.close()
-    plt.xlabel("Support Score (1-10)")
-    plt.ylabel("Information Depth Score (1-10)")
-    plt.title("Heatmap: Support Score vs Information Depth Score")
 
     ### Group by support and information depth scores and generate wordclouds & word co-occurence graphs ###
 
@@ -250,16 +255,16 @@ def analyze_scoring(flatten_comments, output_dir):
         support_score = comment["support_scoring"]["score"]
         info_depth_score = comment["info_depth_scoring"]["score"]
 
-        if support_score >= 7 and info_depth_score >= 7:
+        if support_score >= 61 and info_depth_score >= 61:
             comment_texts_group["hh"].append(comment_text)
 
-        if support_score >= 7 and info_depth_score <= 4:
+        if support_score >= 61 and info_depth_score <= 40:
             comment_texts_group["hl"].append(comment_text)
 
-        if support_score <= 4 and info_depth_score >= 7:
+        if support_score <= 40 and info_depth_score >= 61:
             comment_texts_group["lh"].append(comment_text)
 
-        if support_score <= 4 and info_depth_score <= 4:
+        if support_score <= 40 and info_depth_score <= 40:
             comment_texts_group["ll"].append(comment_text)
 
     for group_name, comment_texts in comment_texts_group.items():
@@ -784,13 +789,12 @@ def main(args):
 
     analyze_all(flatten_comments, output_dir)
 
-    stance_cluster = cluster_by_stance(flatten_comments)
-    stance_result = analyze_stance(stance_cluster, output_dir)
-    generate_stance_wordclouds(stance_result, output_dir)
+    # XXX (JiaKuan Su): These analyses are not used in the paper, so I commented them out.
+    # analyze_stance(flatten_comments, output_dir)
+    # analyze_tagging(flatten_comments, output_dir)
+    # analyze_cross(flatten_comments, output_dir)
 
     analyze_scoring(flatten_comments, output_dir)
-    analyze_tagging(flatten_comments, output_dir)
-    analyze_cross(flatten_comments, output_dir)
     analyze_framing(flatten_comments, output_dir)
 
     analyze_pickup_framings(
