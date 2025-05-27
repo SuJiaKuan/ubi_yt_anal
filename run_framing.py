@@ -1,5 +1,6 @@
 import argparse
 import os
+import traceback
 
 from src.framing import ArgumentFramer
 from src.io import load_json
@@ -32,7 +33,13 @@ def parse_args():
 
 def run_framing(argument_framer, comment, comment_type="Outer"):
     comment_text = comment["content"]
-    argument_results = argument_framer.frame(comment_text)
+    try:
+        argument_results = argument_framer.frame(comment_text)
+    except Exception as e:
+        print(f"Failed to frame comment: {comment_text}")
+        print("Stack trace:")
+        traceback.print_exc()
+        argument_results = []
 
     print("=========")
     print(f"{comment_type} Comment:")
