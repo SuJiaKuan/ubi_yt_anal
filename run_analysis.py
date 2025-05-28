@@ -498,7 +498,7 @@ def plot_radial_concept_network(
     num_shells: int,
     output_path: str,
     figsize=(12, 12),
-    alpha_range=(0.01, 0.9),
+    alpha_range=(0.01, 0.7),
 ):
     """
     Plot a radial concept network with edge transparency varying by weight.
@@ -534,7 +534,7 @@ def plot_radial_concept_network(
 
     # Draw graph
     nx.draw_networkx_nodes(G, pos_radial, node_color="lightgray", node_size=node_sizes)
-    nx.draw_networkx_labels(G, pos_radial, font_size=8)
+    nx.draw_networkx_labels(G, pos_radial, font_size=6)
     for (u, v), color, width, alpha in zip(
         G.edges(), edge_colors, edge_widths, edge_alphas
     ):
@@ -548,7 +548,7 @@ def plot_radial_concept_network(
 
 
 def build_and_plot_concept_network(
-    comments: list, output_path: str, threshold: float = 0.03, num_shells: int = 5
+    comments: list, output_path: str, threshold: float = 0.025, num_shells: int = 5
 ):
     """
     Build and visualize a radial concept co-occurrence network from annotated comments.
