@@ -520,6 +520,18 @@ def plot_radial_concept_network(
             )
         edge_alphas.append(alpha)
 
+    # Draw concentric blue rings
+    for r in range(1, num_shells + 1):
+        circle = plt.Circle(
+            (0, 0),
+            r * 1.5,
+            color="lightskyblue",
+            fill=False,
+            linestyle="--",
+            alpha=0.5,
+        )
+        plt.gca().add_patch(circle)
+
     # Draw graph
     nx.draw_networkx_nodes(G, pos_radial, node_color="lightgray", node_size=node_sizes)
     nx.draw_networkx_labels(G, pos_radial, font_size=8)
@@ -529,18 +541,6 @@ def plot_radial_concept_network(
         nx.draw_networkx_edges(
             G, pos_radial, edgelist=[(u, v)], edge_color=color, width=width, alpha=alpha
         )
-
-    # Draw concentric green rings
-    for r in range(1, num_shells + 1):
-        circle = plt.Circle(
-            (0, 0),
-            r * 1.5,
-            color="mediumseagreen",
-            fill=False,
-            linestyle="--",
-            alpha=0.2,
-        )
-        plt.gca().add_patch(circle)
 
     plt.axis("off")
     plt.savefig(output_path, dpi=FIG_DPI)
@@ -786,6 +786,7 @@ def main(args):
         flatten_comments.append(outter_comment)
         for inner_comment in outter_comment["replies"]:
             flatten_comments.append(inner_comment)
+    print(f"Total comments loaded: {len(flatten_comments)}")
 
     analyze_all(flatten_comments, output_dir)
 
