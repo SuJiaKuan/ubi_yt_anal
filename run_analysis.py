@@ -619,7 +619,7 @@ def build_and_plot_concept_network(
     for layer_idx, nodes in enumerate(layered_nodes):
         radius = (layer_idx + 1) * 1.5
         angle_step = 2 * np.pi / len(nodes) if nodes else 1
-        angle_offset = (layer_idx % 2) * (angle_step / 2)
+        angle_offset = (layer_idx % 3) * (angle_step / 3)
         for i, node in enumerate(nodes):
             angle = i * angle_step + angle_offset
             x = radius * np.cos(angle)
