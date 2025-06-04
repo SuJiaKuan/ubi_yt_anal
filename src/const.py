@@ -55,6 +55,13 @@ class ARGUMENT_STANCE_CATEGORY(str, Enum):
     NONE = "None"
 
 
+class ARGUMENT_MAJOR_CATEGORY(str, Enum):
+    SOCIETY_ETHICS = "Society & Ethics"
+    POLITICS_POLICY = "Politics & Policy"
+    ECONOMY_INSTITUTIONS = "Economy & Institutions"
+    PERSONAL_CHOICE = "Personal Choice"
+
+
 class ARGUMENT_LABEL(str, Enum):
     # Society & Ethics
     HUMAN_NATURE_AND_LAZINESS = "Human Nature & Laziness"
