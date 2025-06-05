@@ -492,6 +492,10 @@ def count_framing_freq(flatten_comments, output_path):
         for framed_argument in comment["argument_framing"]:
             label = framed_argument["label"]
             stance = framed_argument["stance"]
+
+            if label not in ARGUMENT_LABEL._value2member_map_:
+                continue
+
             argument_counts[(label, stance)] += 1
 
     # Convert to DataFrame for plotting
