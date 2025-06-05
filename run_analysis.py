@@ -144,6 +144,8 @@ def parse_args():
             ARGUMENT_LABEL.HUMAN_NATURE_AND_LAZINESS.value,
             ARGUMENT_LABEL.CAPITALISM.value,
             ARGUMENT_LABEL.REDISTRIBUTION.value,
+            ARGUMENT_LABEL.UNCONDITIONALITY.value,
+            ARGUMENT_LABEL.FREEDOM.value,
         ],
         help="The argument framings for specific analysis",
     )
